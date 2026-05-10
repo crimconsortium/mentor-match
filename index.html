@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Find Your Criminology PhD Mentor — Mentor Match</title>
+    <meta
+      name="description"
+      content="A short, transparent quiz that helps prospective criminology and criminal-justice PhD students discover likely mentors among faculty across the field. A companion tool to the Criminology PhD Faculty Explorer, supported by the CrimRxiv Consortium."
+    />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Find Your Criminology PhD Mentor — Mentor Match" />
+    <meta
+      property="og:description"
+      content="A short, transparent quiz that helps prospective criminology and criminal-justice PhD students discover likely mentors across the field."
+    />
+    <meta property="og:type" content="website" />
+
+    <!-- Fonts — same stack as the Faculty Explorer -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;0,8..60,700;1,8..60,400;1,8..60,500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="style.css" />
+
+    <!-- Favicon — same mark as the Faculty Explorer -->
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230e0e0e'/><path d='M9 22 V10 L16 6 L23 10 V22 Z M9 22 H23' stroke='%23f68212' stroke-width='1.6' fill='none' stroke-linejoin='round'/><circle cx='16' cy='14' r='2.2' fill='%23f68212'/></svg>"
+    />
+  </head>
+  <body>
+    <div class="page">
+      <!-- ============================================================
+           Header — mirrors the Faculty Explorer brand block + dark-mode toggle
+           ============================================================ -->
+      <header class="site-header">
+        <div class="brand">
+          <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+            <path d="M9 23 V11 L16 7 L23 11 V23 Z M9 23 H23" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round" stroke-linecap="round" />
+            <circle cx="16" cy="15" r="2.4" fill="currentColor" />
+          </svg>
+          <div class="brand-text">
+            <div class="brand-title">Mentor Match</div>
+            <div class="brand-subtitle">Criminology PhD Companion</div>
+          </div>
+        </div>
+        <div class="header-actions">
+          <a class="header-link" href="https://crimconsortium.github.io/criminology-faculty-explorer/" target="_blank" rel="noopener">Faculty Explorer →</a>
+          <button class="icon-btn" data-theme-toggle aria-label="Toggle color scheme">
+            <!-- icon injected by JS -->
+          </button>
+        </div>
+      </header>
+
+      <!-- ============================================================
+           Hero — short and inviting; methodology lives in the debrief
+           ============================================================ -->
+      <section class="hero" id="hero">
+        <div class="hero-eyebrow">
+          Supported by the <a href="https://crimrxiv.com/consortium" target="_blank" rel="noopener">CrimRxiv Consortium</a>
+        </div>
+        <h1 class="hero-title">Find your <em>criminology mentor</em>.</h1>
+        <p class="hero-lead">
+          A short, transparent quiz that surfaces likely PhD mentors across criminology and criminal-justice
+          programs in the United States plus international CrimRxiv Consortium members.
+          Answer four quick questions and we'll rank the faculty whose interests, location, rank, and
+          openness best match yours.
+        </p>
+        <p class="privacy-note">
+          Your answers stay in your browser and are not saved or sent. No analytics, no cookies, no storage.
+        </p>
+      </section>
+
+      <!-- ============================================================
+           Quiz container — one question at a time, with progress
+           ============================================================ -->
+      <section class="quiz" id="quiz" aria-label="Mentor-matching quiz">
+        <div class="quiz-progress" aria-hidden="true">
+          <div class="quiz-progress-bar"><div class="quiz-progress-fill" id="progress-fill"></div></div>
+          <div class="quiz-progress-meta"><span id="progress-step">1</span> of <span id="progress-total">4</span></div>
+        </div>
+
+        <div class="quiz-card" id="quiz-card">
+          <!-- question content injected by JS -->
+        </div>
+
+        <div class="quiz-actions">
+          <button class="btn btn-secondary" id="btn-back" disabled>← Back</button>
+          <div class="quiz-actions-right">
+            <button class="btn btn-ghost" id="btn-skip" type="button">Skip</button>
+            <button class="btn btn-primary" id="btn-next">Next →</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           Results — hidden until quiz is complete
+           ============================================================ -->
+      <section class="results" id="results" hidden>
+        <div class="results-header">
+          <h2 class="results-title">Your top matches</h2>
+          <button class="btn btn-secondary" id="btn-restart">Retake quiz</button>
+        </div>
+
+        <div class="results-summary" id="results-summary">
+          <!-- "You said topic fit mattered most…" injected by JS -->
+        </div>
+
+        <div class="results-grid" id="results-grid">
+          <!-- result cards injected by JS -->
+        </div>
+
+        <!-- Modest mid-results CTA panel for CrimRxiv -->
+        <aside class="cta-panel" aria-labelledby="cta-title">
+          <div class="cta-eyebrow">CrimRxiv Consortium</div>
+          <h3 class="cta-title" id="cta-title">Open criminology — for everyone</h3>
+          <p class="cta-body">
+            This tool is supported by the <a href="https://crimrxiv.com/consortium" target="_blank" rel="noopener">CrimRxiv Consortium</a>,
+            a network of departments and institutions working to make criminology and criminal-justice
+            scholarship free to read and free to share. If you're applying to PhD programs, your future
+            mentors' open-access work is one of the best ways to read deeply before you commit.
+          </p>
+          <div class="cta-actions">
+            <a class="btn btn-primary" href="https://crimrxiv.com" target="_blank" rel="noopener">Visit CrimRxiv</a>
+            <a class="btn btn-secondary" href="https://crimrxiv.com/submit" target="_blank" rel="noopener">Submit your work</a>
+            <a class="btn btn-secondary" href="https://crimrxiv.com/consortium" target="_blank" rel="noopener">About the Consortium</a>
+          </div>
+        </aside>
+
+        <details class="methodology" id="methodology">
+          <summary>How the ranking works</summary>
+          <div class="methodology-body">
+            <p>
+              Mentor Match is a transparent <strong>weighted matching tool</strong>, not a psychometric
+              instrument. We don't claim to predict who will be a good advisor for you — only to surface
+              promising starting points for further reading.
+            </p>
+            <p>
+              Each faculty member earns points across the four dimensions you weighted. We sum the points,
+              divide by the maximum you could have awarded, and rank everyone. There are <strong>no hard
+              vetoes</strong>: a scholar can still appear even if they don't perfectly match every dimension,
+              as long as they score well overall. Each card explains exactly why that person rose to the top.
+            </p>
+            <p>
+              Faculty data is shared with the
+              <a href="https://crimconsortium.github.io/criminology-faculty-explorer/" target="_blank" rel="noopener">Criminology PhD Faculty Explorer</a>.
+              Topic tags are editorial — criminology has no universally agreed taxonomy — and match the
+              same canonical list used in the Explorer.
+            </p>
+          </div>
+        </details>
+      </section>
+
+      <!-- ============================================================
+           Footer — Consortium credit + calls to action
+           ============================================================ -->
+      <footer class="site-footer">
+        <div class="footer-grid">
+          <div class="footer-block">
+            <div class="footer-title">Mentor Match</div>
+            <p class="footer-body">
+              A companion to the
+              <a href="https://crimconsortium.github.io/criminology-faculty-explorer/" target="_blank" rel="noopener">Criminology PhD Faculty Explorer</a>.
+              Built for prospective PhD students and anyone exploring who they might study under in
+              criminology and criminal justice.
+            </p>
+          </div>
+
+          <div class="footer-block">
+            <div class="footer-title">CrimRxiv Consortium</div>
+            <p class="footer-body">
+              This site is supported by the <a href="https://crimrxiv.com/consortium" target="_blank" rel="noopener">CrimRxiv Consortium</a>,
+              an open-criminology network hosted by the University of Manchester. Consortium members support
+              open access to criminology research via <a href="https://crimrxiv.com" target="_blank" rel="noopener">CrimRxiv</a>.
+            </p>
+            <ul class="footer-links">
+              <li><a href="https://crimrxiv.com" target="_blank" rel="noopener">Visit CrimRxiv</a></li>
+              <li><a href="https://crimrxiv.com/submit" target="_blank" rel="noopener">Submit your work to CrimRxiv</a></li>
+              <li><a href="https://crimrxiv.com/consortium" target="_blank" rel="noopener">Learn about the Consortium</a></li>
+            </ul>
+          </div>
+
+          <div class="footer-block">
+            <div class="footer-title">Privacy</div>
+            <p class="footer-body">
+              Your answers stay in your browser and are not saved or sent. No analytics, no cookies, no local
+              storage. This is a static site you can read, fork, or audit on GitHub.
+            </p>
+          </div>
+        </div>
+
+        <div class="footer-note" id="footer-note"></div>
+      </footer>
+    </div>
+
+    <script src="faculty.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
