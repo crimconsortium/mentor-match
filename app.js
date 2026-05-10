@@ -117,11 +117,9 @@
       id: 'topics',
       eyebrow: 'Question 1 of 4',
       title: 'What do you want to study?',
-      help: 'Pick up to six topics. Faculty who work in your chosen areas will score higher. These tags are the same canonical list used in the Criminology PhD Faculty Explorer — pick the closest fit even if your interest is more specific.',
-      type: 'multi',
+      help: "Describe your interests in your own words \u2014 a sentence or two is plenty. We'll match against what each faculty member lists as their research, plus the same canonical topic list used in the Faculty Explorer. If you'd rather pick from common topics, the list is below.",
+      type: 'freetext',
       weightable: true,
-      options: () => DATA.topics.map((t) => ({ key: t, label: t })),
-      max: 6,
     },
     {
       id: 'regions',
@@ -159,12 +157,18 @@
   // ----------------------------------------------------------------
   // We deliberately do not persist this anywhere. Refreshing the page wipes everything.
   const ANSWERS = {
+    // Free-text prompt the user types. The chip set below it stays for users
+    // who'd rather pick canonical topics; both signals feed scoring.
+    topicsText: '',
     topics: new Set(),
     regions: new Set(),
     states: new Set(),
     rank: 'any',
     openness: 'no',
     weights: Object.assign({}, DEFAULT_WEIGHTS),
+    // Cached parse of topicsText — recomputed on Next click
+    topicTokens: [],
+    topicTaxonomyHits: [], // canonical labels detected in the user's text
   };
   let currentStep = 0;
 
@@ -244,11 +248,167 @@
   )).sort();
 
   // ----------------------------------------------------------------
+  //  Free-text matching: tokenizer, stemmer, fuzzy matcher
+  // ----------------------------------------------------------------
+  // The Python builder ships pre-tokenized faculty interests on each record
+  // (`_tokens`) and ships the full canonical taxonomy with synonym patterns
+  // (`DATA.taxonomy`). Here we tokenize the user's free-text prompt the same
+  // way and match it against both signals.
+  //
+  // Strict substring matching is the foundation. Light stemming makes
+  // "police"/"policing"/"policed" all count. Light fuzzy matching tolerates
+  // a single-character typo on words >= 5 letters — enough to catch
+  // "policng" → "policing" without surfacing nonsense matches.
+  // ----------------------------------------------------------------
+
+  const STOPWORDS = new Set((
+    'a an and any are as at be been being but by can could did do does doing don ' +
+    'for from get had has have having he her hers him his how i in into is it its ' +
+    'just me my of on or our ours so some such than that the their theirs them then ' +
+    'there these they this those to too us very was we were what when where which ' +
+    'who whom why will with would you your yours about above after again all am ' +
+    'because before below between both during each few here if more most no nor not ' +
+    'only other own same should until up while during also study studying studied ' +
+    'research researching researcher work working worker phd mentor mentors ' +
+    'mentoring mentorship advisor advisors interest interests interested topic ' +
+    'topics area areas focus focuses focused want wanting like'
+  ).split(/\s+/));
+
+  // Tokenize free text the same way build_data.py does for faculty interests.
+  function tokenize(text) {
+    if (!text) return [];
+    const cleaned = String(text).toLowerCase().replace(/[^a-z0-9\-' ]+/g, ' ');
+    const out = [];
+    cleaned.split(/\s+/).forEach((tok) => {
+      tok = tok.replace(/^[-']+|[-']+$/g, '');
+      if (tok.length < 3) return;
+      if (STOPWORDS.has(tok)) return;
+      out.push(tok);
+    });
+    return out;
+  }
+
+  // Light suffix stemmer. Returns a short "stem" for matching purposes.
+  // Cheap and predictable — we want "policing" ≡ "police" ≡ "policed".
+  function stem(word) {
+    if (word.length <= 4) return word;
+    // Order matters: try longer suffixes first.
+    const sufx = ['ization', 'ational', 'tional', 'iveness', 'fulness', 'ousness',
+                  'ables', 'ibles', 'ments', 'ingly', 'edly', 'ings',
+                  'ization', 'ation', 'ities', 'ment', 'ness', 'less', 'ful',
+                  'ies', 'ied', 'ing', 'ers', 'ed', 'es', 's', 'ly', 'er'];
+    for (let i = 0; i < sufx.length; i++) {
+      const s = sufx[i];
+      if (word.length > s.length + 2 && word.endsWith(s)) {
+        return word.slice(0, word.length - s.length);
+      }
+    }
+    return word;
+  }
+
+  // Levenshtein distance — only used for short comparisons (cap = 1).
+  function lev1(a, b) {
+    if (a === b) return 0;
+    if (Math.abs(a.length - b.length) > 1) return 2;
+    // Allow at most one substitution / insertion / deletion.
+    let i = 0, j = 0, edits = 0;
+    while (i < a.length && j < b.length) {
+      if (a[i] === b[j]) { i++; j++; continue; }
+      edits++;
+      if (edits > 1) return 2;
+      if (a.length === b.length) { i++; j++; }
+      else if (a.length > b.length) { i++; }
+      else { j++; }
+    }
+    if (i < a.length || j < b.length) edits++;
+    return edits;
+  }
+
+  // Does user-token `u` match faculty-token `f`?
+  // Strict substring on either side after stemming, plus a single-typo
+  // fallback on words >= 5 letters.
+  function tokensMatch(u, f) {
+    if (!u || !f) return false;
+    if (u === f) return true;
+    const su = stem(u), sf = stem(f);
+    if (su === sf) return true;
+    // Substring on stems (catches "policing"/"police-community"-style)
+    if (su.length >= 4 && sf.includes(su)) return true;
+    if (sf.length >= 4 && su.includes(sf)) return true;
+    // One-edit fuzzy on stems, only when both are reasonably long
+    if (su.length >= 5 && sf.length >= 5 && lev1(su, sf) <= 1) return true;
+    return false;
+  }
+
+  // Apply the canonical taxonomy patterns to free text. Mirrors the
+  // build_data.py / Explorer logic so users typing "cops" or "law enforcement"
+  // both surface the Policing tag. Patterns are matched as substrings on the
+  // raw lowercased text (not on tokens) so multi-word phrases like
+  // "law enforcement" still work.
+  function detectTaxonomyHits(text) {
+    if (!text) return [];
+    const low = String(text).toLowerCase();
+    const hits = [];
+    (DATA.taxonomy || []).forEach((entry) => {
+      if (entry.patterns.some((p) => low.includes(p))) hits.push(entry.label);
+    });
+    return hits;
+  }
+
+  // For one faculty member, count how many of the user's tokens overlap
+  // with their pre-tokenized interests. Returns {hits, matchedUserTokens}.
+  // matchedUserTokens is the set of *user words* that landed — these are
+  // what we surface in the explanation card.
+  function tokenOverlap(userTokens, facultyTokens) {
+    if (!userTokens.length || !facultyTokens.length) {
+      return { hits: 0, matchedUserTokens: [] };
+    }
+    const matched = new Set();
+    let hits = 0;
+    for (const u of userTokens) {
+      for (const f of facultyTokens) {
+        if (tokensMatch(u, f)) {
+          hits += 1;
+          matched.add(u);
+          break; // each user token counts once max
+        }
+      }
+    }
+    return { hits, matchedUserTokens: Array.from(matched) };
+  }
+
+  // De-dupe user tokens before matching; preserves order.
+  function uniq(arr) {
+    const seen = new Set();
+    const out = [];
+    for (const x of arr) { if (!seen.has(x)) { seen.add(x); out.push(x); } }
+    return out;
+  }
+
+  // ----------------------------------------------------------------
   //  Question rendering
   // ----------------------------------------------------------------
+  // Example prompts for the free-text topic question. Click to fill the
+  // textarea — a low-friction nudge for users who don't know where to start.
+  const TOPIC_EXAMPLES = [
+    'Police use of force and accountability in marginalized communities',
+    'Why young people stop offending as they age',
+    'Wrongful convictions and prosecutorial decision-making',
+    'Cybercrime and online fraud',
+    'Race, sentencing, and the death penalty',
+    'Gun violence prevention and community-based interventions',
+  ];
+
   function renderQuestion() {
     const q = QUESTIONS[currentStep];
-    const optionsHtml = q.options().map((opt) => renderOption(q, opt)).join('');
+
+    let bodyHtml;
+    if (q.type === 'freetext') {
+      bodyHtml = renderFreeTextTopics();
+    } else {
+      const optionsHtml = q.options().map((opt) => renderOption(q, opt)).join('');
+      bodyHtml = `<div class="${q.type === 'multi' ? 'option-grid' : 'option-list'}" role="${q.type === 'multi' ? 'group' : 'radiogroup'}">${optionsHtml}</div>`;
+    }
 
     let extraHtml = '';
     if (q.extra === 'states') {
@@ -276,9 +436,7 @@
       <div class="q-eyebrow">${escapeHtml(q.eyebrow)}</div>
       <h2 class="q-title">${escapeHtml(q.title)}</h2>
       <p class="q-help">${escapeHtml(q.help)}</p>
-      <div class="${q.type === 'multi' ? 'option-grid' : 'option-list'}" role="${q.type === 'multi' ? 'group' : 'radiogroup'}">
-        ${optionsHtml}
-      </div>
+      ${bodyHtml}
       ${extraHtml}
       ${weightHtml}
     `;
@@ -287,6 +445,32 @@
     els.quizCard.querySelectorAll('input[type=checkbox], input[type=radio]').forEach((inp) => {
       inp.addEventListener('change', () => onOptionChange(q, inp));
     });
+
+    // Free-text wiring (textarea + example pills + collapsible chip fallback)
+    if (q.type === 'freetext') {
+      const ta = $('topics-text');
+      if (ta) {
+        ta.value = ANSWERS.topicsText;
+        ta.addEventListener('input', () => { ANSWERS.topicsText = ta.value; });
+      }
+      els.quizCard.querySelectorAll('.example-pill').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const v = btn.getAttribute('data-example') || '';
+          ANSWERS.topicsText = v;
+          if (ta) { ta.value = v; ta.focus(); }
+        });
+      });
+      const fallbackToggle = $('fallback-topics-toggle');
+      const fallbackBox = $('fallback-topics-box');
+      if (fallbackToggle && fallbackBox) {
+        fallbackToggle.addEventListener('click', () => {
+          const open = fallbackBox.style.display !== 'none';
+          fallbackBox.style.display = open ? 'none' : 'block';
+          fallbackToggle.textContent = open ? 'Or pick from common topics' : 'Hide common topics';
+          fallbackToggle.setAttribute('aria-expanded', String(!open));
+        });
+      }
+    }
     // Importance slider
     const slider = $('weight-input');
     if (slider) {
@@ -312,6 +496,43 @@
     els.progressStep.textContent = currentStep + 1;
     els.btnBack.disabled = currentStep === 0;
     els.btnNext.textContent = currentStep === QUESTIONS.length - 1 ? 'See my matches →' : 'Next →';
+  }
+
+  function renderFreeTextTopics() {
+    // Examples — click to populate the textarea
+    const exampleChips = TOPIC_EXAMPLES
+      .map((ex) => `<button type="button" class="example-pill" data-example="${escapeHtml(ex)}">${escapeHtml(ex)}</button>`)
+      .join('');
+
+    // Canonical chip fallback — same labels as the explorer's keyword list
+    const fallbackOpen = ANSWERS.topics.size > 0;
+    const chips = DATA.topics
+      .map((t) => `<label class="topic-chip"><input type="checkbox" value="${escapeHtml(t)}" data-fallback-topic ${ANSWERS.topics.has(t) ? 'checked' : ''} /><span>${escapeHtml(t)}</span></label>`)
+      .join('');
+
+    return `
+      <div class="freetext-block">
+        <textarea
+          id="topics-text"
+          class="freetext-input"
+          rows="4"
+          placeholder="For example: I want to study how policing affects immigrant communities, especially around procedural justice and trust."
+          autocomplete="off"
+          spellcheck="true"
+        ></textarea>
+        <div class="example-pills-label">Or try one of these:</div>
+        <div class="example-pills">${exampleChips}</div>
+        <div class="fallback-topics">
+          <button type="button" class="fallback-topics-toggle" id="fallback-topics-toggle" aria-expanded="${fallbackOpen}">
+            ${fallbackOpen ? 'Hide common topics' : 'Or pick from common topics'}
+          </button>
+          <div id="fallback-topics-box" style="display:${fallbackOpen ? 'block' : 'none'};margin-top:var(--space-3)">
+            <div class="fallback-topics-help">These are the same canonical tags used in the Faculty Explorer. They feed the same scoring as your free-text prompt.</div>
+            <div class="topic-chip-grid">${chips}</div>
+          </div>
+        </div>
+      </div>
+    `;
   }
 
   function renderOption(q, opt) {
@@ -374,13 +595,17 @@
     }
   }
 
-  // Delegated handler for state chips (they sit inside .state-grid)
+  // Delegated handlers for chips outside the main option list
   document.addEventListener('change', (e) => {
     const inp = e.target;
     if (!(inp instanceof HTMLInputElement)) return;
     if (inp.closest('.state-grid')) {
       if (inp.checked) ANSWERS.states.add(inp.value);
       else ANSWERS.states.delete(inp.value);
+    }
+    if (inp.hasAttribute('data-fallback-topic')) {
+      if (inp.checked) ANSWERS.topics.add(inp.value);
+      else ANSWERS.topics.delete(inp.value);
     }
   });
 
@@ -407,6 +632,9 @@
     els.btnNext.click();
   });
   els.btnRestart.addEventListener('click', () => {
+    ANSWERS.topicsText = '';
+    ANSWERS.topicTokens = [];
+    ANSWERS.topicTaxonomyHits = [];
     ANSWERS.topics.clear();
     ANSWERS.regions.clear();
     ANSWERS.states.clear();
@@ -419,6 +647,14 @@
     renderQuestion();
     els.hero.scrollIntoView({ behavior: 'smooth' });
   });
+
+  // Parse the user's free-text prompt into tokens + canonical taxonomy hits.
+  // Called once at finishQuiz() (and also useful if we ever want to preview
+  // matches mid-flow). Idempotent.
+  function parseTopicPrompt() {
+    ANSWERS.topicTokens = uniq(tokenize(ANSWERS.topicsText));
+    ANSWERS.topicTaxonomyHits = detectTaxonomyHits(ANSWERS.topicsText);
+  }
 
   // ----------------------------------------------------------------
   //  Scoring
@@ -433,15 +669,48 @@
     const w = ANSWERS.weights;
     const subs = {};
 
-    // --- Topics (set overlap, fraction of user's picks that the faculty covers)
-    if (ANSWERS.topics.size > 0) {
-      let hits = 0;
-      ANSWERS.topics.forEach((t) => { if (f.topics.includes(t)) hits += 1; });
-      subs.topics = hits / ANSWERS.topics.size;
-      subs._topicHits = hits;
+    // --- Topics --------------------------------------------------------
+    // Two signals combine into the topic sub-score:
+    //   (a) Canonical-tag fit: of the topic tags the user's text triggered
+    //       (plus any chips they checked), what fraction does this faculty
+    //       member also have?
+    //   (b) Phrase overlap: of the meaningful tokens in the user's text,
+    //       what fraction appear in this faculty member's interests?
+    // We blend (a) and (b). Tag fit is heavier because it rewards conceptual
+    // alignment, not just literal word reuse.
+    //
+    // Effective tag set the user wants = canonical hits from text ∪ checked chips.
+    const wantedTags = new Set([...ANSWERS.topicTaxonomyHits, ...ANSWERS.topics]);
+    const tagsHit = [];
+    wantedTags.forEach((t) => { if (f.topics.includes(t)) tagsHit.push(t); });
+
+    const overlap = tokenOverlap(ANSWERS.topicTokens, f._tokens || []);
+
+    let topicScore = 0;
+    let usedAnyTopicSignal = false;
+    if (wantedTags.size > 0) {
+      topicScore += 0.7 * (tagsHit.length / wantedTags.size);
+      usedAnyTopicSignal = true;
+    }
+    if (ANSWERS.topicTokens.length > 0) {
+      // Cap denominator so the score doesn't get diluted by very long prompts;
+      // 6 distinct content words is plenty of signal.
+      const denom = Math.max(3, Math.min(6, ANSWERS.topicTokens.length));
+      topicScore += 0.3 * Math.min(1, overlap.hits / denom);
+      usedAnyTopicSignal = true;
+    }
+    // If only one signal exists, scale up so a strong text-only or chip-only
+    // prompt still maxes out at 1.0.
+    if (usedAnyTopicSignal) {
+      const cap = (wantedTags.size > 0 ? 0.7 : 0) + (ANSWERS.topicTokens.length > 0 ? 0.3 : 0);
+      subs.topics = cap > 0 ? Math.min(1, topicScore / cap) : 0;
     } else {
       subs.topics = 0;
     }
+    subs._tagsHit = tagsHit;
+    subs._wantedTags = Array.from(wantedTags);
+    subs._matchedWords = overlap.matchedUserTokens;
+    subs._userTokenCount = ANSWERS.topicTokens.length;
 
     // --- Location
     // Full credit for a region match. Bonus for a state match when the user
@@ -512,6 +781,7 @@
   }
 
   function rankAll() {
+    parseTopicPrompt();
     const scored = DATA.faculty.map(scoreFaculty);
     scored.sort((a, b) => (b.score - a.score) || a._tie.localeCompare(b._tie));
     return scored;
@@ -565,10 +835,18 @@
       priorityLine = joined;
     }
 
+    // Show the user how their topic prompt was parsed — transparent and
+    // reassuring. List the canonical topics we detected; if none, fall back
+    // to the literal words we'll match against.
     let topicLine = '';
-    if (ANSWERS.topics.size > 0) {
-      const tags = Array.from(ANSWERS.topics).map((t) => `<span class="topic-tag">${escapeHtml(t)}</span>`).join(' ');
-      topicLine = ` Your topic picks: ${tags}`;
+    const detectedTags = uniq([...ANSWERS.topicTaxonomyHits, ...ANSWERS.topics]);
+    if (detectedTags.length > 0) {
+      const tags = detectedTags.map((t) => `<span class="topic-tag">${escapeHtml(t)}</span>`).join(' ');
+      topicLine = ` We read your prompt as covering: ${tags}.`;
+    } else if (ANSWERS.topicTokens.length > 0) {
+      const words = ANSWERS.topicTokens.slice(0, 8).map((w) => `<em>${escapeHtml(w)}</em>`).join(', ');
+      const more = ANSWERS.topicTokens.length > 8 ? '…' : '';
+      topicLine = ` Your prompt didn't trigger any of the canonical topic tags, so we matched on your words directly: ${words}${more}.`;
     }
 
     return `${priorityLine} These matches rose to the top because they aligned best with your selected priorities — no one was excluded by a hard filter.${topicLine}`;
@@ -622,24 +900,47 @@
     const reasons = [];
     const w = ANSWERS.weights;
 
-    // Topics
-    if (ANSWERS.topics.size > 0 && w.topics > 0) {
-      const hits = Array.from(ANSWERS.topics).filter((t) => f.topics.includes(t));
-      if (hits.length === ANSWERS.topics.size && hits.length > 0) {
+    // Topics — surface canonical-tag hits AND the actual words from the
+    // user's prompt that landed in the faculty's interests.
+    if (w.topics > 0 && (ANSWERS.topicTokens.length > 0 || ANSWERS.topics.size > 0)) {
+      const tagsHit = r.subs._tagsHit || [];
+      const wantedTagsCount = (r.subs._wantedTags || []).length;
+      const matchedWords = r.subs._matchedWords || [];
+
+      if (tagsHit.length > 0) {
+        if (wantedTagsCount > 0 && tagsHit.length === wantedTagsCount) {
+          reasons.push({
+            ok: true,
+            html: `Works in every topic your prompt suggested: ${tagsHit.map(tag).join(' ')}.`,
+          });
+        } else if (wantedTagsCount > 0) {
+          reasons.push({
+            ok: true,
+            html: `Matches ${tagsHit.length} of ${wantedTagsCount} topic ${pluralize(wantedTagsCount, 'area', 'areas')} your prompt suggested: ${tagsHit.map(tag).join(' ')}.`,
+          });
+        } else {
+          reasons.push({
+            ok: true,
+            html: `Works in ${tagsHit.map(tag).join(' ')}.`,
+          });
+        }
+      }
+
+      if (matchedWords.length > 0) {
+        const shown = matchedWords.slice(0, 5).map((w) => `<em>${escapeHtml(w)}</em>`).join(', ');
+        const more = matchedWords.length > 5 ? ` +${matchedWords.length - 5} more` : '';
         reasons.push({
           ok: true,
-          html: `Works in every topic you picked: ${hits.map(tag).join(' ')}.`,
+          html: `Your words found in their listed interests: ${shown}${more}.`,
         });
-      } else if (hits.length > 0) {
-        reasons.push({
-          ok: true,
-          html: `Matches ${hits.length} of your ${ANSWERS.topics.size} topic ${pluralize(ANSWERS.topics.size, 'pick', 'picks')}: ${hits.map(tag).join(' ')}.`,
-        });
-      } else if (f.topics.length > 0) {
-        // No direct topic hit but they have adjacent interests worth surfacing
+      }
+
+      // No tag hits, no word hits, but they do have *some* interests —
+      // surface them so the user sees why this person still ranked well.
+      if (tagsHit.length === 0 && matchedWords.length === 0 && f.topics.length > 0) {
         reasons.push({
           ok: false,
-          html: `Their listed interests didn't tag any of your picks, but they work on ${f.topics.slice(0, 3).map(tag).join(' ')}.`,
+          html: `Didn't tag any of your prompt's topics directly, but they work on ${f.topics.slice(0, 3).map(tag).join(' ')}.`,
         });
       }
     }

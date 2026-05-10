@@ -117,6 +117,45 @@ def keywords_for(text: str):
     return [label for (label, pats) in KEYWORD_TAXONOMY if any(p in low for p in pats)]
 
 
+# Stopwords for free-text matching. Anything in this set is dropped from the
+# user's quiz prompt before we look for token overlap with faculty interests.
+# Kept conservative — we want to drop only filler, not topical content words.
+STOPWORDS = set("""
+a an and any are as at be been being but by can could did do does doing don
+for from get had has have having he her hers him his how i in into is it its
+just me my of on or our ours so some such than that the their theirs them then
+there these they this those to too us very was we were what when where which
+who whom why will with would you your yours about above after again all am
+because before below between both during each few here if more most no nor not
+only other own same should until up while during also study studying studied
+research researching researcher work working worker phd mentor mentors
+mentoring mentorship advisor advisors interest interests interested topic
+topics area areas focus focuses focused want wanting like
+""".split())
+
+
+def tokenize_for_match(text: str):
+    """Lowercase, strip punctuation, split, drop stopwords + very short tokens.
+
+    Returned tokens still carry their full word; light suffix stemming happens
+    in JS at match time so users can read them as written.
+    """
+    if not text:
+        return []
+    low = text.lower()
+    # replace non-alphanumeric with spaces, then split
+    cleaned = re.sub(r"[^a-z0-9\-' ]+", " ", low)
+    out = []
+    for tok in cleaned.split():
+        tok = tok.strip("-'")
+        if len(tok) < 3:
+            continue
+        if tok in STOPWORDS:
+            continue
+        out.append(tok)
+    return out
+
+
 def simplify_title(t: str) -> str:
     """Mirror the explorer's title-category logic, but bucket into three quiz tiers."""
     if not t:
@@ -206,6 +245,10 @@ def main():
     print(f"Built {len(faculty)} faculty across {len({f['institution'] for f in faculty})} institutions.")
 
     # Emit faculty.js
+    # Pre-tokenize each faculty's interests so the client matcher is O(n)
+    for f in faculty:
+        f["_tokens"] = tokenize_for_match(f["research_interests"])
+
     payload = {
         "generated_at": data.get("generated_at"),
         "build_date": data.get("build_date"),
@@ -214,6 +257,11 @@ def main():
         "explorer_site_url": "https://crimconsortium.github.io/criminology-faculty-explorer/",
         "faculty": faculty,
         "topics": [label for (label, _pats) in KEYWORD_TAXONOMY],
+        # Ship the full taxonomy with synonym patterns so the client can run
+        # the same keyword detection on the user's free-text prompt.
+        "taxonomy": [
+            {"label": label, "patterns": pats} for (label, pats) in KEYWORD_TAXONOMY
+        ],
     }
 
     header = (
