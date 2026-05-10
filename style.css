@@ -272,6 +272,9 @@ a:hover { border-bottom-color: var(--color-primary); }
   color: var(--color-primary);
   font-weight: 500;
 }
+.hero-title em.hero-find {
+  color: var(--color-text);
+}
 .hero-lead {
   color: var(--color-text-muted);
   font-size: var(--text-base);

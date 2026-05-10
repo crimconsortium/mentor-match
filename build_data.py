@@ -191,7 +191,10 @@ def simplify_title(t: str) -> str:
 
 
 # Quiz rank tiers: higher / middle / lower
-TIER_HIGHER = {"Distinguished Professor", "Professor", "Dean / Chair", "Emeritus"}
+# Note: "Emeritus" is intentionally absent — emeritus/emerita faculty are
+# excluded from the dataset at build time (see main()) because they are
+# generally not taking new PhD students.
+TIER_HIGHER = {"Distinguished Professor", "Professor", "Dean / Chair"}
 TIER_MIDDLE = {"Associate Professor", "Clinical Professor", "Research Professor"}
 TIER_LOWER  = {"Assistant Professor", "Teaching / Instructional", "Lecturer", "Instructor"}
 
@@ -210,6 +213,7 @@ def main():
 
     faculty = []
     missing_inst = set()
+    skipped_emeritus = 0
     for dep in data["departments"]:
         inst = dep["institution"]
         info = INSTITUTIONS.get(inst)
@@ -219,7 +223,15 @@ def main():
         state, region, country = info
         consortium_dept = bool(dep.get("crimrxiv_member"))
         for f in dep["faculty"]:
-            title_cat = simplify_title(f.get("title", ""))
+            raw_title = f.get("title", "") or ""
+            # Exclude emeritus / emerita faculty — the quiz surfaces likely PhD
+            # mentors, and emeritus faculty are generally not taking new
+            # students. The substring catches "Emeritus", "Emerita",
+            # "Professor Emeritus", "Emeritus Professor", etc.
+            if "emerit" in raw_title.lower():
+                skipped_emeritus += 1
+                continue
+            title_cat = simplify_title(raw_title)
             interests = f.get("research_interests", "") or ""
             consortium = bool(f.get("crimrxiv_member") or consortium_dept)
             faculty.append({
@@ -242,6 +254,7 @@ def main():
             })
     if missing_inst:
         print("WARNING: missing institution map for:", missing_inst)
+    print(f"Excluded {skipped_emeritus} emeritus/emerita faculty.")
     print(f"Built {len(faculty)} faculty across {len({f['institution'] for f in faculty})} institutions.")
 
     # Emit faculty.js
