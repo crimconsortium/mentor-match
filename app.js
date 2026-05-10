@@ -196,6 +196,29 @@
   els.progressTotal.textContent = QUESTIONS.length;
 
   // ----------------------------------------------------------------
+  //  Dataset stats strip — mirrors the Faculty Explorer's stats block
+  // ----------------------------------------------------------------
+  (function populateStats() {
+    const fac = DATA.faculty;
+    const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    const fmt = (n) => n.toLocaleString('en-US');
+    setText('stat-faculty', fmt(fac.length));
+    setText('stat-institutions', fmt(new Set(fac.map((f) => f.institution)).size));
+    setText('stat-consortium', fmt(fac.filter((f) => f.consortium).length));
+    // Prefer the explicit build_date (set by build_data.py); fall back to
+    // the generated_at timestamp. Render as e.g. "Apr 28, 2026".
+    const stamp = DATA.build_date || DATA.generated_at;
+    if (stamp) {
+      const d = new Date(stamp.length === 10 ? stamp + 'T00:00:00Z' : stamp);
+      if (!isNaN(d)) {
+        setText('stat-compiled', d.toLocaleDateString('en-US', {
+          month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC',
+        }));
+      }
+    }
+  })();
+
+  // ----------------------------------------------------------------
   //  Theme — same toggle behavior as the Explorer
   // ----------------------------------------------------------------
   function preferredTheme() {

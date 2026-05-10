@@ -82,6 +82,27 @@
         <p class="privacy-note">
           Your answers stay in your browser and are not saved or sent. No analytics, no cookies, no storage.
         </p>
+
+        <!-- Dataset stats strip — mirrors the Faculty Explorer's stats block.
+             Values are filled in by app.js from window.__MM_DATA__. -->
+        <section class="stats" id="stats" aria-label="Dataset summary">
+          <div class="stat">
+            <div class="stat-value" id="stat-faculty">—</div>
+            <div class="stat-label">Faculty indexed</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value" id="stat-institutions">—</div>
+            <div class="stat-label">Institutions covered</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value" id="stat-consortium">—</div>
+            <div class="stat-label">Consortium-affiliated</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value" id="stat-compiled">—</div>
+            <div class="stat-label">Data compiled</div>
+          </div>
+        </section>
       </section>
 
       <!-- ============================================================
