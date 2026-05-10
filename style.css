@@ -961,6 +961,40 @@ a:hover { border-bottom-color: var(--color-primary); }
   .result-links { grid-column: 1 / -1; }
 }
 
+/* Disclaimer — humility note above the CrimRxiv CTA */
+.disclaimer {
+  margin: var(--space-8) 0 var(--space-6);
+  padding: var(--space-6) var(--space-8);
+  background: transparent;
+  border: 1px dashed var(--color-divider);
+  border-radius: var(--radius-lg);
+}
+.disclaimer-eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: var(--space-2);
+}
+.disclaimer-title {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+  margin-bottom: var(--space-3);
+}
+.disclaimer-body {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  line-height: 1.65;
+  max-width: 70ch;
+}
+.disclaimer-body + .disclaimer-body { margin-top: var(--space-3); }
+.disclaimer-body strong { color: var(--color-text); font-weight: 600; }
+
 /* CTA Panel */
 .cta-panel {
   margin: var(--space-8) 0;
