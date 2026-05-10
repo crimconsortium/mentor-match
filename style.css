@@ -278,14 +278,12 @@ a:hover { border-bottom-color: var(--color-primary); }
 .hero-lead {
   color: var(--color-text-muted);
   font-size: var(--text-base);
-  max-width: 65ch;
 }
 .hero-companion {
   margin-top: var(--space-3);
   color: var(--color-text-muted);
   font-size: var(--text-sm);
   line-height: 1.6;
-  max-width: 65ch;
 }
 .hero-companion a {
   color: var(--color-text);
@@ -304,7 +302,6 @@ a:hover { border-bottom-color: var(--color-primary); }
   border-radius: var(--radius-sm);
   font-size: var(--text-xs);
   color: var(--color-text-muted);
-  max-width: 65ch;
 }
 
 /* ============================================================
