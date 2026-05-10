@@ -264,16 +264,34 @@ a:hover { border-bottom-color: var(--color-primary); }
   font-weight: 500;
   letter-spacing: -0.02em;
   margin-bottom: var(--space-3);
+  color: var(--color-text);
+  font-style: normal;
 }
 .hero-title em {
   font-style: italic;
   color: var(--color-primary);
+  font-weight: 500;
 }
 .hero-lead {
   color: var(--color-text-muted);
   font-size: var(--text-base);
   max-width: 65ch;
 }
+.hero-companion {
+  margin-top: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  max-width: 65ch;
+}
+.hero-companion a {
+  color: var(--color-text);
+  text-decoration: underline;
+  text-decoration-color: var(--color-accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.hero-companion a:hover { text-decoration-thickness: 2px; }
 .privacy-note {
   margin-top: var(--space-4);
   padding: var(--space-3) var(--space-4);
