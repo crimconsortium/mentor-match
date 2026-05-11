@@ -1033,11 +1033,11 @@
   const institutionCount = new Set(DATA.faculty.map((f) => f.institution)).size;
   const consortiumCount = DATA.faculty.filter((f) => f.consortium).length.toLocaleString();
   els.footerNote.innerHTML = `
-    Built on the same faculty dataset as the
+    A <a href="https://crimrxiv.com/consortium" target="_blank" rel="noopener">CrimRxiv Consortium</a> tool, companion to the
     <a href="${escapeHtml(DATA.explorer_site_url || 'https://crimconsortium.github.io/criminology-faculty-explorer/')}" target="_blank" rel="noopener">Criminology PhD Faculty Explorer</a>.
     Currently indexing ${facultyCount} faculty across ${institutionCount} departments,
-    including ${consortiumCount} at <a href="https://crimrxiv.com/consortium" target="_blank" rel="noopener">CrimRxiv Consortium</a> institutions.
-    Data compiled ${escapeHtml(DATA.build_date || '—')}.
+    including ${consortiumCount} at Consortium institutions.
+    Your answers stay in your browser — no analytics, no cookies, no storage. Data compiled ${escapeHtml(DATA.build_date || '—')}.
   `;
 
   // ----------------------------------------------------------------
