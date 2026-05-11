@@ -52,30 +52,30 @@
     {
       key: 'International',
       label: 'International',
-      help: 'CrimRxiv Consortium members in the UK, EU, Canada, Australia/NZ, and more.',
+      help: 'Universities outside the U.S. — UK, EU, Canada, Australia/NZ, and more.',
     },
   ];
 
   const RANK_PREFS = [
     {
       key: 'higher',
-      label: 'Established faculty',
-      help: 'Full professors, distinguished/named chairs, and senior leadership — deep records of advising.',
+      label: 'Senior professor',
+      help: 'Full professors and named/distinguished chairs. They have long track records and lots of experience advising PhD students.',
     },
     {
       key: 'middle',
-      label: 'Mid-career faculty',
-      help: 'Associate professors and clinical/research professors — active labs and growing track records.',
+      label: 'Mid-career professor',
+      help: 'Associate professors and clinical/research professors. They have active research going and a growing record of advising students.',
     },
     {
       key: 'lower',
-      label: 'Early-career faculty',
-      help: 'Assistant professors and newer faculty — building research agendas; often more hands-on with PhD students.',
+      label: 'Newer professor',
+      help: 'Assistant professors and recently hired faculty. They are still building their research and often have more time and energy for new PhD students.',
     },
     {
       key: 'any',
       label: 'No preference',
-      help: "Don't weight rank at all. Score everyone equally on this dimension.",
+      help: "I don't care how senior or junior the professor is.",
     },
   ];
 
@@ -83,17 +83,17 @@
     {
       key: 'yes',
       label: 'Yes, this matters to me',
-      help: 'I want to work with faculty whose institution is actively making criminology more open and freely available.',
+      help: "I want to work with professors at schools that are actively making criminology research free for anyone to read.",
     },
     {
       key: 'maybe',
       label: 'Nice to have',
-      help: 'I appreciate it, but I want it weighted lightly compared to research fit.',
+      help: "It's a plus, but research fit matters more to me.",
     },
     {
       key: 'no',
       label: "Doesn't matter",
-      help: "Don't weight this dimension at all.",
+      help: "I'm not factoring this in.",
     },
   ];
 
@@ -117,7 +117,7 @@
       id: 'topics',
       eyebrow: 'Question 1 of 4',
       title: 'What do you want to study?',
-      help: "Describe your interests in your own words \u2014 a sentence or two is plenty. We'll match against what each faculty member lists as their research, plus the same canonical topic list used in the Faculty Explorer. If you'd rather pick from common topics, the list is below.",
+      help: "Describe your interests in your own words \u2014 a sentence or two is plenty. We'll compare what you write to what each professor says they research. Not sure how to put it? Pick from the common topics below.",
       type: 'freetext',
       weightable: true,
     },
@@ -125,7 +125,7 @@
       id: 'regions',
       eyebrow: 'Question 2 of 4',
       title: 'Where would you like to study?',
-      help: 'Select any U.S. region that works for you. Pick "International" to include CrimRxiv Consortium members outside the U.S. Location is weighted — faculty outside your selected regions can still appear if they match strongly on other dimensions.',
+      help: "Pick any U.S. regions where you'd be happy to live. Choose 'International' to also see professors based outside the U.S. This is a preference, not a hard filter \u2014 a great match in another region can still show up.",
       type: 'multi',
       weightable: true,
       options: () => REGIONS.map((r) => ({ key: r.key, label: r.label, help: r.help })),
@@ -136,7 +136,7 @@
       id: 'rank',
       eyebrow: 'Question 3 of 4',
       title: 'What kind of mentor do you want?',
-      help: 'Pick one. Established faculty often have longer track records; early-career faculty may have more time and energy for new students. This is a soft preference, not a filter.',
+      help: "Pick one. Senior professors usually have more experience advising students; newer professors often have more time for you. It's a preference, not a hard filter \u2014 others can still show up if they're a strong match overall.",
       type: 'single',
       weightable: true,
       options: () => RANK_PREFS.map((r) => ({ key: r.key, label: r.label, help: r.help })),
@@ -144,8 +144,8 @@
     {
       id: 'openness',
       eyebrow: 'Question 4 of 4',
-      title: 'How much does open scholarship matter to you?',
-      help: 'Some institutions are leaders in making criminology research free to read and share. We can prioritize faculty at those institutions if that matters to you.',
+      title: 'Do you care if research is free to read?',
+      help: "Most academic studies are locked behind paywalls. Some universities are working to change that, so anyone can read criminology research for free. We can give a boost to professors at those schools if this matters to you.",
       type: 'single',
       weightable: true,
       options: () => OPENNESS_PREFS.map((r) => ({ key: r.key, label: r.label, help: r.help })),
@@ -550,7 +550,7 @@
             ${fallbackOpen ? 'Hide common topics' : 'Or pick from common topics'}
           </button>
           <div id="fallback-topics-box" style="display:${fallbackOpen ? 'block' : 'none'};margin-top:var(--space-3)">
-            <div class="fallback-topics-help">These are the same canonical tags used in the Faculty Explorer. They feed the same scoring as your free-text prompt.</div>
+            <div class="fallback-topics-help">Tap any topics that fit. These count toward your match the same way your typed answer does.</div>
             <div class="topic-chip-grid">${chips}</div>
           </div>
         </div>
@@ -841,7 +841,7 @@
 
     let priorityLine;
     if (ordered.length === 0) {
-      priorityLine = 'You turned off every dimension. <strong>Showing the field alphabetically.</strong> Retake the quiz and dial a few sliders up to get a ranked list.';
+      priorityLine = 'You turned off every priority. <strong>Showing everyone alphabetically.</strong> Retake the quiz and turn at least one priority up to get a ranked list.';
     } else {
       const named = ordered.map((x, i) => {
         if (i === 0) return `<strong>${labels[x.k]}</strong>`;
@@ -869,10 +869,10 @@
     } else if (ANSWERS.topicTokens.length > 0) {
       const words = ANSWERS.topicTokens.slice(0, 8).map((w) => `<em>${escapeHtml(w)}</em>`).join(', ');
       const more = ANSWERS.topicTokens.length > 8 ? '…' : '';
-      topicLine = ` Your prompt didn't trigger any of the canonical topic tags, so we matched on your words directly: ${words}${more}.`;
+      topicLine = ` Your description didn't match any of our common topic tags, so we compared your words directly: ${words}${more}.`;
     }
 
-    return `${priorityLine} These matches rose to the top because they aligned best with your selected priorities — no one was excluded by a hard filter.${topicLine}`;
+    return `${priorityLine} These names rose to the top because they best fit what you said mattered — nobody was automatically excluded.${topicLine}`;
   }
 
   function renderResultCard(r, rank) {
@@ -981,7 +981,7 @@
         const loc = f.country === 'United States'
           ? `${escapeHtml(f.region)}${f.state ? ' (' + escapeHtml(f.state) + ')' : ''}`
           : escapeHtml(f.country);
-        reasons.push({ ok: false, html: `Outside your preferred regions (${loc}), but scored well enough on other dimensions to surface here.` });
+        reasons.push({ ok: false, html: `Outside your preferred regions (${loc}), but a strong enough match on other things to show up here.` });
       }
     }
 
