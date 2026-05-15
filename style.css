@@ -304,6 +304,8 @@ a:hover { border-bottom-color: var(--color-primary); }
   text-underline-offset: 2px;
 }
 .hero-cta a:hover { text-decoration-thickness: 2px; }
+.hero-cta p { margin: 0; }
+.hero-cta p + p { margin-top: var(--space-2); }
 .privacy-note {
   margin-top: var(--space-4);
   padding: var(--space-3) var(--space-4);
