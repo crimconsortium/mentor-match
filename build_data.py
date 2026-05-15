@@ -221,6 +221,10 @@ def main():
             missing_inst.add(inst)
             continue
         state, region, country = info
+        # The upstream Explorer's JSON still uses the legacy field name
+        # `crimrxiv_member`. The consortium has been renamed to "CrimConsortium"
+        # at https://crimconsortium.com, but the field name has not changed
+        # in the source data — keep reading it as-is.
         consortium_dept = bool(dep.get("crimrxiv_member"))
         for f in dep["faculty"]:
             raw_title = f.get("title", "") or ""
@@ -233,7 +237,7 @@ def main():
                 continue
             title_cat = simplify_title(raw_title)
             interests = f.get("research_interests", "") or ""
-            consortium = bool(f.get("crimrxiv_member") or consortium_dept)
+            consortium = bool(f.get("crimrxiv_member") or consortium_dept)  # legacy upstream field name
             faculty.append({
                 "name": f["name"],
                 "title": f.get("title", ""),

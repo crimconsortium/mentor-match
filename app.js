@@ -8,7 +8,7 @@
    • Per-dimension scoring weight:     DEFAULT_WEIGHTS (importance sliders adjust at runtime)
    • Scoring math:                     scoreFaculty()
    • Result-card explanation text:     explainMatch()
-   • CrimRxiv / Consortium CTA copy:   edit index.html (#cta-* and footer blocks)
+   • CrimConsortium CTA copy:          edit index.html (.hero-cta blocks)
    • US regions / state mapping:       build_data.py (rebuild faculty.js after edits)
    • Topic taxonomy:                   build_data.py KEYWORD_TAXONOMY
    ============================================================= */
@@ -879,7 +879,7 @@
     const f = r.faculty;
     const reasons = explainMatch(r);
     const badge = f.consortium
-      ? `<span class="crimrxiv-badge" title="CrimRxiv Consortium member institution">CrimRxiv</span>`
+      ? `<span class="crimrxiv-badge" title="CrimConsortium member institution">CrimConsortium</span>`
       : '';
 
     // Links: profile first, then department/directory, then email
@@ -1000,9 +1000,9 @@
     // Openness
     if (ANSWERS.openness !== 'no' && w.openness > 0) {
       if (f.consortium) {
-        reasons.push({ ok: true, html: `At a <strong>CrimRxiv Consortium</strong> institution — your "open scholarship matters" preference applied.` });
+        reasons.push({ ok: true, html: `At a <strong>CrimConsortium</strong> institution — your "open scholarship matters" preference applied.` });
       } else if (ANSWERS.openness === 'yes') {
-        reasons.push({ ok: false, html: `Their institution isn't in the CrimRxiv Consortium, but they ranked well on your other priorities.` });
+        reasons.push({ ok: false, html: `Their institution isn't in CrimConsortium, but they ranked well on your other priorities.` });
       }
     }
 
@@ -1033,10 +1033,10 @@
   const institutionCount = new Set(DATA.faculty.map((f) => f.institution)).size;
   const consortiumCount = DATA.faculty.filter((f) => f.consortium).length.toLocaleString();
   els.footerNote.innerHTML = `
-    A <a href="https://crimrxiv.com/consortium" target="_blank" rel="noopener">CrimRxiv Consortium</a> tool, companion to the
+    A <a href="https://crimconsortium.com" target="_blank" rel="noopener">CrimConsortium</a> tool, companion to the
     <a href="${escapeHtml(DATA.explorer_site_url || 'https://crimconsortium.github.io/criminology-faculty-explorer/')}" target="_blank" rel="noopener">Criminology PhD Faculty Explorer</a>.
     Currently indexing ${facultyCount} faculty across ${institutionCount} departments,
-    including ${consortiumCount} at Consortium institutions.
+    including ${consortiumCount} at CrimConsortium institutions.
     Your answers stay in your browser — no analytics, no cookies, no storage. Data compiled ${escapeHtml(DATA.build_date || '—')}.
   `;
 

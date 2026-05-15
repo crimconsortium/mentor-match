@@ -2,7 +2,7 @@
 
 A short, transparent quiz that helps prospective criminology and criminal-justice PhD students discover likely mentors among faculty across the field.
 
-A companion to the [Criminology PhD Faculty Explorer](https://crimconsortium.github.io/criminology-faculty-explorer/), supported by the [CrimRxiv Consortium](https://crimrxiv.com/consortium).
+A companion to the [Criminology PhD Faculty Explorer](https://crimconsortium.github.io/criminology-faculty-explorer/), supported by [CrimConsortium](https://crimconsortium.com).
 
 **Live site:** https://crimconsortium.github.io/mentor-match/
 
@@ -37,7 +37,7 @@ Common edits, with file pointers:
 - **Default weights per dimension** → `DEFAULT_WEIGHTS` in `app.js`
 - **Scoring math** → `scoreFaculty()` in `app.js`
 - **Card explanations** → `explainMatch()` in `app.js`
-- **CrimRxiv / Consortium CTA copy** → `index.html` (`.cta-panel` and `.site-footer`)
+- **CrimConsortium CTA copy** → `index.html` (`.hero-cta` blocks)
 - **Topic taxonomy** → `KEYWORD_TAXONOMY` in `build_data.py` (rerun after editing)
 - **Institution → state / region / country map** → `INSTITUTIONS` in `build_data.py`
 
@@ -55,4 +55,4 @@ Pushes to `main` are published automatically by GitHub Pages. No build step.
 
 ## Credit
 
-Supported by the [CrimRxiv Consortium](https://crimrxiv.com/consortium). Make your criminology research open at [CrimRxiv](https://crimrxiv.com).
+Supported by [CrimConsortium](https://crimconsortium.com). Make your criminology research open at [CrimRxiv](https://crimrxiv.com).
