@@ -160,7 +160,7 @@ a:hover { border-bottom-color: var(--color-primary); }
    Layout
    ============================================================ */
 .page {
-  max-width: 880px; /* narrower than the explorer — quiz reads better at column width */
+  max-width: 1400px; /* matches Faculty Explorer and Jobs dashboard */
   margin: 0 auto;
   padding: var(--space-6) var(--space-5) var(--space-16);
 }
